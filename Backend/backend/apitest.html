@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safety Alert System API Tester</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+
+        .test-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ddd;
+            transition: all 0.3s ease;
+        }
+
+        .status-indicator.success {
+            background: #28a745;
+        }
+
+        .status-indicator.error {
+            background: #dc3545;
+        }
+
+        .status-indicator.loading {
+            background: #ffc107;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #dc3545, #fd7e14);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #ffc107, #fd7e14);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .response-area {
+            background: #1e1e1e;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #333;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+        .input-group label {
+            min-width: 100px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .ws-section {
+            background: linear-gradient(135deg, #667eea20, #764ba220);
+            border-left-color: #764ba2;
+        }
+
+        .session-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        .log-success {
+            background: rgba(40, 167, 69, 0.1);
+            color: #155724;
+        }
+
+        .log-error {
+            background: rgba(220, 53, 69, 0.1);
+            color: #721c24;
+        }
+
+        .log-info {
+            background: rgba(23, 162, 184, 0.1);
+            color: #0c5460;
+        }
+
+        .test-all-btn {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            font-size: 1.2rem;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-bottom: 30px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .test-all-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(40, 167, 69, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🚀 Safety Alert System API Tester</h1>
+
+        <button class="test-all-btn" onclick="runAllTests()">
+            🧪 Run All Tests Automatically
+        </button>
+
+        <div class="session-info">
+            <strong>Server URL:</strong> <span id="serverUrl">http://localhost:3000</span><br>
+            <strong>Current Session:</strong> <span id="currentSession">None</span><br>
+            <strong>WebSocket Status:</strong> <span id="wsStatus">Disconnected</span>
+        </div>
+
+        <!-- Health Check -->
+        <div class="test-section">
+            <h2>
+                <span class="status-indicator" id="health-status"></span>
+                🏥 Health Check
+            </h2>
+            <div class="controls">
+                <button class="btn btn-success" onclick="testHealth()">
+                    ❤️ Check Health
+                </button>
+                <button class="btn btn-primary" onclick="testRoot()">
+                    🏠 Get API Info
+                </button>
+            </div>
+            <pre class="response-area" id="health-response">Click buttons to test endpoints...</pre>
+        </div>
+
+        <!-- Session Management -->
+        <div class="test-section">
+            <h2>
+                <span class="status-indicator" id="session-status"></span>
+                🎭 Session Management
+            </h2>
+            <div class="input-group">
+                <label>Session ID:</label>
+                <input type="text" id="sessionId" value="test-session-123" placeholder="Enter session ID">
+            </div>
+            <div class="controls">
+                <button class="btn btn-success" onclick="startSession()">
+                    ▶️ Start Session
+                </button>
+                <button class="btn btn-primary" onclick="getSessionStatus()">
+                    📊 Get Status
+                </button>
+                <button class="btn btn-warning" onclick="getAllSessions()">
+                    📋 List All
+                </button>
+                <button class="btn btn-danger" onclick="stopSession()">
+                    ⏹️ Stop Session
+                </button>
+            </div>
+            <pre class="response-area" id="session-response">No session operations yet...</pre>
+        </div>
+
+        <!-- Audio Upload -->
+        <div class="test-section">
+            <h2>
+                <span class="status-indicator" id="audio-status"></span>
+                🎵 Audio Upload
+            </h2>
+            <div class="input-group">
+                <label>Audio File:</label>
+                <input type="file" id="audioFile" accept="audio/*">
+            </div>
+            <div class="controls">
+                <button class="btn btn-primary" onclick="uploadAudio()">
+                    📤 Upload Audio
+                </button>
+                <button class="btn btn-warning" onclick="simulateAudioUpload()">
+                    🎭 Simulate Upload
+                </button>
+            </div>
+            <pre class="response-area" id="audio-response">No audio uploads yet...</pre>
+        </div>
+
+        <!-- WebSocket -->
+        <div class="test-section ws-section">
+            <h2>
+                <span class="status-indicator" id="ws-status-indicator"></span>
+                📡 WebSocket Real-time
+            </h2>
+            <div class="controls">
+                <button class="btn btn-success" onclick="connectWebSocket()">
+                    🔌 Connect
+                </button>
+                <button class="btn btn-primary" onclick="joinWSSession()">
+                    🚪 Join Session
+                </button>
+                <button class="btn btn-warning" onclick="sendPing()">
+                    🏓 Send Ping
+                </button>
+                <button class="btn btn-danger" onclick="disconnectWebSocket()">
+                    🔌 Disconnect
+                </button>
+            </div>
+            <pre class="response-area" id="ws-response">WebSocket not connected...</pre>
+        </div>
+    </div>
+
+    <script>
+        const baseUrl = 'http://localhost:3000';
+        let currentSessionId = 'test-session-123';
+        let websocket = null;
+
+        // Utility functions
+        function updateStatus(elementId, status) {
+            const indicator = document.getElementById(elementId);
+            indicator.className = `status-indicator ${status}`;
+        }
+
+        function logResponse(elementId, response, isError = false) {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const logClass = isError ? 'log-error' : 'log-success';
+
+            element.innerHTML = `<div class="log-entry ${logClass}">
+                [${timestamp}] ${typeof response === 'object' ? JSON.stringify(response, null, 2) : response}
+            </div>` + element.innerHTML;
+        }
+
+        function logInfo(elementId, message) {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+
+            element.innerHTML = `<div class="log-entry log-info">
+                [${timestamp}] ${message}
+            </div>` + element.innerHTML;
+        }
+
+        // API Test Functions
+        async function testHealth() {
+            updateStatus('health-status', 'loading');
+            try {
+                const response = await fetch(`${baseUrl}/health`);
+                const data = await response.json();
+                logResponse('health-response', data);
+                updateStatus('health-status', 'success');
+            } catch (error) {
+                logResponse('health-response', `Error: ${error.message}`, true);
+                updateStatus('health-status', 'error');
+            }
+        }
+
+        async function testRoot() {
+            updateStatus('health-status', 'loading');
+            try {
+                const response = await fetch(`${baseUrl}/`);
+                const data = await response.json();
+                logResponse('health-response', data);
+                updateStatus('health-status', 'success');
+            } catch (error) {
+                logResponse('health-response', `Error: ${error.message}`, true);
+                updateStatus('health-status', 'error');
+            }
+        }
+
+        async function startSession() {
+            updateStatus('session-status', 'loading');
+            currentSessionId = document.getElementById('sessionId').value;
+
+            try {
+                const response = await fetch(`${baseUrl}/api/audio/session/start`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId: currentSessionId,
+                        config: { sampleRate: 44100, channels: 1 }
+                    })
+                });
+                const data = await response.json();
+                logResponse('session-response', data);
+                updateStatus('session-status', response.ok ? 'success' : 'error');
+
+                if (response.ok) {
+                    document.getElementById('currentSession').textContent = currentSessionId;
+                }
+            } catch (error) {
+                logResponse('session-response', `Error: ${error.message}`, true);
+                updateStatus('session-status', 'error');
+            }
+        }
+
+        async function getSessionStatus() {
+            updateStatus('session-status', 'loading');
+            currentSessionId = document.getElementById('sessionId').value;
+
+            try {
+                const response = await fetch(`${baseUrl}/api/audio/session/${currentSessionId}/status`);
+                const data = await response.json();
+                logResponse('session-response', data);
+                updateStatus('session-status', response.ok ? 'success' : 'error');
+            } catch (error) {
+                logResponse('session-response', `Error: ${error.message}`, true);
+                updateStatus('session-status', 'error');
+            }
+        }
+
+        async function getAllSessions() {
+            updateStatus('session-status', 'loading');
+            try {
+                const response = await fetch(`${baseUrl}/api/audio/sessions`);
+                const data = await response.json();
+                logResponse('session-response', data);
+                updateStatus('session-status', 'success');
+            } catch (error) {
+                logResponse('session-response', `Error: ${error.message}`, true);
+                updateStatus('session-status', 'error');
+            }
+        }
+
+        async function stopSession() {
+            updateStatus('session-status', 'loading');
+            currentSessionId = document.getElementById('sessionId').value;
+
+            try {
+                const response = await fetch(`${baseUrl}/api/audio/session/stop`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId: currentSessionId })
+                });
+                const data = await response.json();
+                logResponse('session-response', data);
+                updateStatus('session-status', response.ok ? 'success' : 'error');
+            } catch (error) {
+                logResponse('session-response', `Error: ${error.message}`, true);
+                updateStatus('session-status', 'error');
+            }
+        }
+
+        async function uploadAudio() {
+            updateStatus('audio-status', 'loading');
+            const fileInput = document.getElementById('audioFile');
+            const sessionId = document.getElementById('sessionId').value;
+
+            if (!fileInput.files[0]) {
+                logResponse('audio-response', 'Please select an audio file first', true);
+                updateStatus('audio-status', 'error');
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                const file = fileInput.files[0];
+
+                const response = await fetch(`${baseUrl}/api/audio/upload/${sessionId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': file.type },
+                    body: file
+                });
+                const data = await response.json();
+                logResponse('audio-response', data);
+                updateStatus('audio-status', response.ok ? 'success' : 'error');
+            } catch (error) {
+                logResponse('audio-response', `Error: ${error.message}`, true);
+                updateStatus('audio-status', 'error');
+            }
+        }
+
+        async function simulateAudioUpload() {
+            updateStatus('audio-status', 'loading');
+            const sessionId = document.getElementById('sessionId').value;
+
+            try {
+                // Create fake audio data
+                const fakeAudioData = new Uint8Array(1024).fill(0);
+
+                const response = await fetch(`${baseUrl}/api/audio/upload/${sessionId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'audio/wav' },
+                    body: fakeAudioData
+                });
+                const data = await response.json();
+                logResponse('audio-response', data);
+                updateStatus('audio-status', response.ok ? 'success' : 'error');
+            } catch (error) {
+                logResponse('audio-response', `Error: ${error.message}`, true);
+                updateStatus('audio-status', 'error');
+            }
+        }
+
+        // WebSocket Functions
+        function connectWebSocket() {
+            updateStatus('ws-status-indicator', 'loading');
+
+            try {
+                websocket = new WebSocket('ws://localhost:3000');
+
+                websocket.onopen = () => {
+                    logInfo('ws-response', '✅ WebSocket connected successfully');
+                    updateStatus('ws-status-indicator', 'success');
+                    document.getElementById('wsStatus').textContent = 'Connected';
+                };
+
+                websocket.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    logResponse('ws-response', `📥 Received: ${JSON.stringify(data)}`);
+                };
+
+                websocket.onclose = () => {
+                    logInfo('ws-response', '❌ WebSocket disconnected');
+                    updateStatus('ws-status-indicator', 'error');
+                    document.getElementById('wsStatus').textContent = 'Disconnected';
+                };
+
+                websocket.onerror = (error) => {
+                    logResponse('ws-response', `❌ WebSocket error: ${error}`, true);
+                    updateStatus('ws-status-indicator', 'error');
+                };
+
+            } catch (error) {
+                logResponse('ws-response', `❌ Connection error: ${error.message}`, true);
+                updateStatus('ws-status-indicator', 'error');
+            }
+        }
+
+        function joinWSSession() {
+            if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+                logResponse('ws-response', '❌ WebSocket not connected', true);
+                return;
+            }
+
+            const sessionId = document.getElementById('sessionId').value;
+            websocket.send(JSON.stringify({
+                type: 'join_session',
+                sessionId: sessionId
+            }));
+            logInfo('ws-response', `📤 Sent join_session for: ${sessionId}`);
+        }
+
+        function sendPing() {
+            if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+                logResponse('ws-response', '❌ WebSocket not connected', true);
+                return;
+            }
+
+            websocket.send(JSON.stringify({ type: 'ping' }));
+            logInfo('ws-response', '📤 Sent ping');
+        }
+
+        function disconnectWebSocket() {
+            if (websocket) {
+                websocket.close();
+                websocket = null;
+            }
+        }
+
+        // Auto Test Function
+        async function runAllTests() {
+            logInfo('health-response', '🚀 Starting automated test sequence...');
+
+            // Test 1: Health Check
+            await testHealth();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Test 2: API Info
+            await testRoot();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Test 3: Start Session
+            await startSession();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Test 4: Get Session Status
+            await getSessionStatus();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Test 5: List All Sessions
+            await getAllSessions();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Test 6: Simulate Audio Upload
+            await simulateAudioUpload();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Test 7: WebSocket Connection
+            connectWebSocket();
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Test 8: Join WebSocket Session
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                joinWSSession();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // Test 9: Send Ping
+                sendPing();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
+            // Test 10: Stop Session
+            await stopSession();
+
+            logInfo('health-response', '✅ All automated tests completed!');
+        }
+
+        // Initialize
+        document.getElementById('sessionId').value = currentSessionId;
+    </script>
+</body>
+
+</html>

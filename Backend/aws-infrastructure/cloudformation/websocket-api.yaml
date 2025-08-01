@@ -1,0 +1,161 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'WebSocket API for Road Safety App'
+
+Resources:
+  WebSocketAPI:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: RoadSafetyWebSocket
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: $request.body.action
+      Description: WebSocket API for real-time audio processing
+
+  ConnectFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: RoadSafety-WebSocket-Connect
+      Runtime: nodejs18.x
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+              console.log('Device connected:', JSON.stringify(event));
+              return {
+                  statusCode: 200,
+                  body: JSON.stringify({ message: 'Connected to Road Safety WebSocket' })
+              };
+          };
+
+  DisconnectFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: RoadSafety-WebSocket-Disconnect
+      Runtime: nodejs18.x
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+              console.log('Device disconnected:', JSON.stringify(event));
+              return {
+                  statusCode: 200,
+                  body: JSON.stringify({ message: 'Disconnected from Road Safety WebSocket' })
+              };
+          };
+
+  AudioFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: RoadSafety-AudioHandler
+      Runtime: nodejs18.x
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+              console.log('Audio data received:', JSON.stringify(event.body));
+              
+              const messages = [
+                  "😱 Risk zone ahead! Drive safe.",
+                  "🔊 Funny alert activated: Risk nearby!",
+                  "🚗 You're approaching danger... just saying!",
+                  "🤣 Alert! Road is feeling adventurous today."
+              ];
+
+              const random = Math.floor(Math.random() * messages.length);
+              const alert = messages[random];
+
+              return {
+                  statusCode: 200,
+                  body: JSON.stringify({
+                      alertMessage: alert,
+                      riskStatus: 'Triggered'
+                  })
+              };
+          };
+
+  ConnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketAPI
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConnectFunction.Arn}/invocations
+
+  DisconnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketAPI
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DisconnectFunction.Arn}/invocations
+
+  AudioIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketAPI
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AudioFunction.Arn}/invocations
+
+  ConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketAPI
+      RouteKey: $connect
+      Target: !Join ["/", ["integrations", !Ref ConnectIntegration]]
+
+  DisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketAPI
+      RouteKey: $disconnect
+      Target: !Join ["/", ["integrations", !Ref DisconnectIntegration]]
+
+  AudioRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketAPI
+      RouteKey: audio
+      Target: !Join ["/", ["integrations", !Ref AudioIntegration]]
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: RiskAlertPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - execute-api:ManageConnections
+                Resource: '*'
+
+  Deployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+      - ConnectRoute
+      - DisconnectRoute
+      - AudioRoute
+    Properties:
+      ApiId: !Ref WebSocketAPI
+
+  Stage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      StageName: prod
+      DeploymentId: !Ref Deployment
+      ApiId: !Ref WebSocketAPI
+
+Outputs:
+  WebSocketURL:
+    Description: WebSocket URL
+    Value: !Sub "wss://${WebSocketAPI}.execute-api.${AWS::Region}.amazonaws.com/prod"
